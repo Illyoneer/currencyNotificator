@@ -16,23 +16,18 @@ import java.util.*
 import androidx.core.app.NotificationManagerCompat
 import android.net.ConnectivityManager
 
-open class CurrencyNotificatorService(): Service()
+open class CurrencyNotificatorService : Service()
 {
     private val contentManipulationManager = ContentManipulator()
     private var currentDateCalendar = Calendar.getInstance()
+    private var currentValue = ""
     private var localValue = ""
     private var dayOfStartService = currentDateCalendar.get(Calendar.DAY_OF_MONTH)
     private var canBeRunning: Boolean = true
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val currentValueFromIntent = intent?.getStringExtra("userValue").toString()
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-            launchServiceAndNotificationForAndroidOAndL(currentValueFromIntent)
-        else
-            launchServiceAndNotificationForAndroidLOLLIPOP(currentValueFromIntent)
-
         CoroutineScope(Dispatchers.IO).launch {
+            scanValueWithDate() //Получение валюты на день запуска сервиса.
             do {
                 val currentCalendarOnDevice = Calendar.getInstance()
                 val currentDayOnDevice = currentCalendarOnDevice.get(Calendar.DAY_OF_MONTH)
@@ -42,29 +37,33 @@ open class CurrencyNotificatorService(): Service()
                             localValue = contentManipulationManager.getDataFormSiteWithSingleDate(currentCalendarOnDevice)
                         }.join() //Получение валюты на период обновления данных.
 
-
-                    var localDoubleValue: Double = 0.0
-                    val currentDoubleValueFromIntent: Double = currentValueFromIntent.toDouble()
-
-                    if(localValue != "")
-                        localDoubleValue = localValue.replace(',', '.').toDouble()
-
                     if(dayOfStartService != currentDayOnDevice) {
-                        if(localValue != "" && localDoubleValue > currentDoubleValueFromIntent) {
+                        Log.i("1service", "Local value: $localValue")
+                        if(localValue != "" && localValue != currentValue) {
                             showNotificationOfValueChange(localValue) //Отображение уведомления об изменении курса.
+                            Log.i("1service", "Day is change")
+                            currentValue = localValue
                             dayOfStartService = currentDayOnDevice
                         }
                     }
                 }else
                     showNotificationOfEthernetState() //Отображение уведомления об отсутствии интернета.
-                delay(3600000) //TODO: Заменить на ContentResolver.
+                delay(600000) //TODO: 600000 Заменить на ContentResolver.
             } while (canBeRunning)
         }
         return START_STICKY
     }
 
+    override fun onCreate() {
+        super.onCreate()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
+            launchServiceAndNotificationForAndroidOAndL()
+        else
+            launchServiceAndNotificationForAndroidLOLLIPOP()
+    }
+
     @RequiresApi(Build.VERSION_CODES.O and Build.VERSION_CODES.R)
-    private fun launchServiceAndNotificationForAndroidOAndL(userValue:String) {
+    private fun launchServiceAndNotificationForAndroidOAndL() {
         val CHANNEL_ID = "ru.glushko.testempty"
         val CHANNEL_NAME = "CurrencyNotificatorService Channel"
         val notificationManager =
@@ -77,7 +76,7 @@ open class CurrencyNotificatorService(): Service()
             .setCategory(Notification.CATEGORY_SERVICE)
             .setSmallIcon(R.drawable.service_icon)
             .setContentTitle("Мониторинг валюты запущен")
-            .setContentText("Заданный курс: $userValue")
+            .setContentText("Обновление каждые 10 минут")
             .setColor(Color.MAGENTA)
             .setOngoing(true)
 
@@ -85,13 +84,13 @@ open class CurrencyNotificatorService(): Service()
     } //Запуск служебного уведомления для Android O и выше.
 
     @RequiresApi(Build.VERSION_CODES.LOLLIPOP)
-    private fun launchServiceAndNotificationForAndroidLOLLIPOP(userValue:String) {
+    private fun launchServiceAndNotificationForAndroidLOLLIPOP() {
         val CHANNEL_ID = "ru.glushko.testempty"
         val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.service_icon)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setContentTitle("Мониторинг валюты запущен")
-            .setContentText("Заданный курс: $userValue")
+            .setContentText("Обновление каждые 10 минут")
             .setColor(Color.MAGENTA)
             .setOngoing(true)
         startForeground(1, notificationBuilder.build())
@@ -136,7 +135,16 @@ open class CurrencyNotificatorService(): Service()
         super.onDestroy()
         canBeRunning = false
         stopSelf()
+        Log.i("1service", "Service stopped.")
     }
+
+    private suspend fun scanValueWithDate() {
+        CoroutineScope(Dispatchers.IO).launch {
+            val value:String = contentManipulationManager.getDataFormSiteWithSingleDate(currentDateCalendar)
+            currentValue = value
+            Log.i("1service", "Current value from service: $currentValue")
+        }.join()
+    }  //Получение валюты на момент вызова.
 
     override fun onBind(intent: Intent?): IBinder? {
         return null

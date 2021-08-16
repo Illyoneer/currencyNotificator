@@ -34,4 +34,11 @@ open class ContentManipulator
         return simpleDateFormat.format(simpleDateFormat.parse(lastMonthDate))
     } //Получение даты прошлого месяца.
 
+    private fun getDateOfYesterday(calendar:Calendar) : String {
+        val day:Int = calendar.get(Calendar.DAY_OF_MONTH) - 1
+        val month:Int = calendar.get(Calendar.MONTH) + 1
+        val year:Int = calendar.get(Calendar.YEAR)
+        val yesterdayDate = "$day/$month/$year"
+        return simpleDateFormat.format(simpleDateFormat.parse(yesterdayDate))
+    } //Получение даты вчерашнего дня.
 }

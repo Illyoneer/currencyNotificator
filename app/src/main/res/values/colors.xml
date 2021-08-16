@@ -8,6 +8,6 @@
     <color name="black">#FF000000</color>
     <color name="gray_back">#454545</color>
     <color name="frameBackgroundColor">#454545</color>
-    <color name="strokeColor">#4C4C4C</color>
+    <color name="strokeColor">#7C7C7C</color>
     <color name="white">#FFFFFFFF</color>
 </resources>
