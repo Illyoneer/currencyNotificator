@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/currency_dynamic"
+        android:icon="@drawable/value_dynamic"
+        android:title="@string/currency_dynamic"/>
+
+    <item
+        android:id="@+id/currency_monitoring"
+        android:icon="@drawable/service_icon"
+        android:title="@string/currency_monitoring"/>
+
+</menu>
